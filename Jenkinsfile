@@ -20,7 +20,7 @@ pipeline {
             }
           }
         }
-        stage("Quality Gate"){
+        /*stage("Quality Gate"){
           steps {
             timeout(time: 5, unit: 'MINUTES') { // Just in case something goes wrong, pipeline will be killed after a timeout
             def qg = waitForQualityGate() // Reuse taskId previously collected by withSonarQubeEnv
@@ -29,7 +29,7 @@ pipeline {
             }
            }
           }
-         }
+         }*/
         
         stage('Build Docker Image') {
             steps {
