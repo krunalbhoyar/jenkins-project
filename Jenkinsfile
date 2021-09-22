@@ -11,8 +11,8 @@ pipeline {
         }
         stage ('sonarqube analysis') {        
           steps {	    
-            sh 'echo "+++++Running Test Cases+++++"'
-	    sh 'npm test'
+            //sh 'echo "+++++Running Test Cases+++++"'
+	    //sh 'npm test'
             sh 'echo "+++++Scanning code coverage+++++"'
             withSonarQubeEnv("sonarqube") {
              sh "${tool("sonarqube")}/bin/sonar-scanner"   
