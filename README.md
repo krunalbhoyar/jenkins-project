@@ -1,170 +1,131 @@
-# Spring Petclinic Angular [![Build Status](https://travis-ci.org/spring-petclinic/spring-petclinic-angular.png?branch=master)](https://travis-ci.org/spring-petclinic/spring-petclinic-angular/)
+## task:
+jenkins master and 2 worker nodes, git checkout, run test cases, take o/p in sonarqube , if quality gates pass then further action will perform otherwise pipeline should abort, if pass then build docker image and deploy to worker nodes of jenkins,
+once the pipeline trigger the take the backend db (mysql, mongo) output in s3 bucket, then pipeline proceed 
 
-## Angular frontend for Spring Petclinic
-
-Warning: **client only**. 
-  Use REST API from backend [spring-petclinic-rest project](https://github.com/spring-petclinic/spring-petclinic-rest)
-  You need start backend server before start frontend application.
-
-## Screenshot
-
-![Screenshot of SPring Petclinic Angular](https://cloud.githubusercontent.com/assets/838318/23263243/f4509c4a-f9dd-11e6-951b-69d0ef72d8bd.png)
-  
-
-## Installation
-
-1. Update angular-cli to latest version (8.0.3 current)
-as described on [angular-cli github readme.md](https://github.com/angular/angular-cli#updating-angular-cli)
-
+Install jenkins, git, docker, docker-compose at master node:
 ````
-npm uninstall -g angular-cli @angular/cli
-npm cache clean
-npm install -g @angular/cli@latest
+vim install.sh.sh
 ````
-Clone project from github
-````
-git clone https://github.com/spring-petclinic/spring-petclinic-angular.git
-````
-Install local project package
-````
-npm install --save-dev @angular/cli@latest
-if npm version > 5.0 delete package-lock.json file  ( bug in npm 5.0 - this file prevent correct packages install)
-npm install
-````
+#!/bin/bash
+#install git
+sudo yum update -y
+sudo yum install git -y
 
-Now project use Angular CLI v.8.0.3 and Angular v.8.0.1
-You can see current dependencies in [package.json](package.json) file.
+#install docker and docker-compose
+sudo amazon-linux-extras install docker -y
+sudo yum install docker -y
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+sudo chkconfig docker on
+sudo curl -L https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
-## Development server
+#Install Jenkins
+sudo amazon-linux-extras install epel -y
+sudo yum install java-1.8.0-openjdk -y
+JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.191.b12-1.el7_6.x86_64
+echo $JAVA_HOME
+export JAVA_HOME
+PATH=$PATH:$JAVA_HOME
+source ~/.bash_profile
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+sudo yum install jenkins -y
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+sudo chkconfig jenkins on
+ ________________
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+add sonarqube docker-compose.yaml file
 
-## Code scaffolding
+docker-compose up -d
+now browse (Public IPv4 address:9000)
+username: admin
+password: admin
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|module`.
+Follow this video to add node https://www.youtube.com/watch?v=ucctWFyNFpY
 
-## Build
+# +++++Setup jenkins slave1+++++
+Now launch another ec2 instance 
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `-prod` flag for a production build.
+install java
+sudo yum update -y
+sudo amazon-linux-extras install epel -y
+sudo yum install java-1.8.0-openjdk -y
+java -version
 
-You can also build the application in a dedicated docker image using the provided `Dockerfile` as follows:
+install docker:
+sudo amazon-linux-extras install docker -y
+sudo yum install docker -y
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+sudo chkconfig docker on
 
-```
-docker build -t spring-petclinic-angular:latest .
-```
+sudo useradd jenkins-slave1
+sudo su - jenkins-slave1
+ssh-keygen -t rsa -N "" -f /home/jenkins-slave1/.ssh/id_rsa
+cd .ssh     (you will get 'id_rsa'  'id_rsa.pub')
+cat id_rsa.pub > authorized_keys
+chmod 700 authorized_keys
+cat id_rsa
 
-Then you will be able to use it as follows:
+Now we will copy authorized_keys to master node "known_hosts" folder
+Now connect to master cli
 
-```
-docker run --rm -p 8080:8080 spring-petclinic-angular:latest
-```
+# ++++++Setup Jenkins Master++++++
+sudo mkdir -p /var/lib/jenkins/.ssh
+cd /var/lib/jenkins/
+ls -la
+sudo chmod 777 .ssh
+ssh-keyscan -H 172.31.19.47 >> /var/lib/jenkins/.ssh/known_hosts     (this ip is SLAVE_NODE_Private_ip)
+cd .ssh
+sudo chown jenkins:jenkins known_hosts
+sudo chmod 700 known_hosts
+__________________________________________
+Now launch jenkins dashboard with port 8080
 
-## Documentation
+# add Slave Node 1 at jenkins dashboard
+go to manage jenkins > manage nodes and clouds > you will get master node
+click on new node: 
+Node name: slave1
+tikk Permanent Agent > OK
 
-The documentation of the Spring Petclinic Angular application is generated by the [compodoc](https://compodoc.app) tool.
+Name: slave1
+Description: slave node for aws jenkins
+Number of executors: 5
+Remote root directory: /home/jenkins-slave1
+Labels: slave1
+Usage: Use this node as much as possible
+Launch method: Launch agents via SSH
+Host: private ip of slave EC2 instance
+Credentials: 
+>>add > Jenkins> Kind> SSH Username with private key
+>>ID: jenkins-slave1
+>>Description: jenkins-slave1
+>>Username: jenkins-slave1
+>>Private Key: Enter directly > Add > paste the contents of 'id_rsa' key file you created for slave > Add 
+Choose that credentials > save
 
-Documentation URL: [https://spring-petclinic.github.io/spring-petclinic-angular/](https://spring-petclinic.github.io/spring-petclinic-angular/)
+[to get 'id_rsa' follow the steps]
+At slave1 cli
+sudo su - jenkins-slave1
+cat /home/jenkins-slave1/.ssh/id_rsa
 
-Regenerate the `docs` folder with [compodoc](https://compodoc.app):
-```
-compodoc -p src/tsconfig.app.json -d docs
-```
+# add Slave Node 2
 
-## Deploy on Web servers
+follow the above steps
 
-### Deploy on Nginx (for Nginx CentOS installation):
+--------------------------
 
-1. Build Angular application:
+open jenkins dashboard and install plugins:  
+1) Docker pipeline plugin  
+2) sonarqube scanner
 
-  ng build --prod --base-href=/petclinic/ --deploy-url=/petclinic/
+1)Install sonarqube scanner plugin: go to manage jenkins > manage plugins> available> search for "sonarqube scanner" and install it and click on restart
+2) go to manage jenkins> configure system> SonarQube servers> Tikk on Environment variables Enable injection > name: sonarqube >Server URL: http://20.20.4.41:9000   and dont add authentication token>save
+3)go to manage jenkins> Global tool configuration> SonarQube Scanner installation> Name: sonarqube (give same name to above also)> Tikk Install automatically> Save
+4) in jenkins create new pipeline job
 
-2. Create sub-directory **/petclinic** in default nginx directory **/usr/share/nginx/html**
+to abort quality gate pipeln check: https://docs.sonarqube.org/latest/analysis/scan/sonarscanner-for-jenkins/
 
-3. Copy **/dist**  sub-directory from Angular appication to  **/usr/share/nginx/html/petclinic**
-
-4. Edit nginx config (nginx.conf file in /etc/nginx/ directory)
-
-```
-server {
-	listen       80 default_server;
-        root         /usr/share/nginx/html;
-        index index.html;
-
-	location /petclinic/ {
-                alias /usr/share/nginx/html/petclinic/dist/;
-                try_files $uri$args $uri$args/ /petclinic/index.html;
-        }
-}
-```
-
-5. Reload nginx:  **nginx -s reload**
-
-6. Run app in brouser:  http://server_name/petclinic/
-
-### Deploy on Apache (for Apache CentOS installation):
-
-1. Build Angular application:
-
-ng build --prod --base-href=/petclinic/ --deploy-url=/petclinic/
-
-2. Create sub-directory **/petclinic** in default Apache directory **/var/www/html**
-
-3. Go into Angular appication **/dist** sub-directory and copy all files and sub-dirs from it to **/var/www/html/petclinic**
-
-4. Edit Apache config (/etc/https/conf/httpd.conf):
-
-sudo vi /etc/httpd/conf/httpd.conf
-
-Find the Directory /var/www/html> section and change the AllowOverride directive from None to All:
-```
- /etc/httpd/conf/httpd.conf
- . . .
-  <Directory /var/www/html>
- . . .
- # 
- # AllowOverride controls what directives may be placed in .htaccess files.
- # It can be "All", "None", or any combination of the keywords:
- # Options FileInfo AuthConfig Limit
- #
- AllowOverride All
- . . .
- </Directory>
- . . .
-```
-5. Save and exit the file and then restart Apache to apply the change:
-
-sudo systemctl restart httpd
-
-6. Create a .htaccess file in the directory **/var/www/html/petclinic**
-
-sudo vi /var/www/html/petclinic/.htaccess
-
-Add the following line to the top of the file to activate the RewriteEngine, which instructs Apache to process any rules that follow:
-```
-RewriteEngine On  
-# If an existing asset or directory is requested go to it as it is
-RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} -f [OR]  
-RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} -d  
-RewriteRule ^ - [L]
-
-# If the requested resource doesn't exist, use index.html
-RewriteRule ^ index.html  
-```
-7. Reload Apache:
-
-sudo systemctl restart httpd
-
-8. Run app in browser: http://server_name/petclinic/
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-Before running the tests make sure you are serving the app via `ng serve`.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+Quality gate https://discuss.devopscube.com/t/waitforqualitygate-in-jenkins-pipeline/1805
