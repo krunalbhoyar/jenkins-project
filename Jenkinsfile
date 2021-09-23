@@ -34,15 +34,15 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '+++++Building the Docker image+++++'
-                sh 'docker build -t spring-petclinic-angular .'
+                sh 'sudo docker build -t spring-petclinic-angular .'
                 echo '+++++Docker image build successfully+++++'
-                sh 'docker images'
+                sh 'sudo docker images'
             }
         }
         stage('Deploy Application') {
             steps {
                  echo '+++++Deploying the Application on slave1+++++'
-                    sh 'docker run -d -p 8081:8081 --name spring-petclinic-angular-app spring-petclinic-angular:latest'
+                    sh 'sudo docker run -d -p 8081:8081 --name spring-petclinic-angular-app spring-petclinic-angular:latest'
                     echo '+++++Application Running Successfully+++++'
                 
             }
