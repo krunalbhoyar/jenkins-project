@@ -42,7 +42,7 @@ pipeline {
         stage('Deploy Application') {
             steps {
                  echo '+++++Deploying the Application on slave1+++++'
-                    sh 'sudo docker run -d -p 8081:8081 --name spring-petclinic-angular-app spring-petclinic-angular:latest'
+                    sh 'sudo docker run -d -p 8080:8080 --name spring-petclinic-angular-app spring-petclinic-angular:latest'
                     echo '+++++Application Running Successfully+++++'
                 
             }
