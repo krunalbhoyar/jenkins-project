@@ -42,8 +42,7 @@ pipeline {
         stage('STOPPING THE PREVIOUS VERSION OF Docker Container') {
                 steps {
                     echo '+++++Stopping & removing the Application+++++'
-                    sh 'chmod +x docker-stop.sh'
-                    sh './docker-stop.sh'
+                    sh 'sudo docker stop $(sudo docker container ls | grep spring-petclinic-angular-app | awk '{print $1}') | xargs docker rm'
                     echo '+++++Application Stopped+++++'
                 }
         }
