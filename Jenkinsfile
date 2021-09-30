@@ -9,7 +9,7 @@ pipeline {
                 git 'https://github.com/krunalbhoyar/jenkins-project.git'
             }
         }
-        stage ('sonarqube analysis') {        
+        /*stage ('sonarqube analysis') {        
           steps {	    
             sh 'echo "+++++Running code Coverage+++++"'
 	    sh 'ng test --no-watch --code-coverage'
@@ -19,7 +19,7 @@ pipeline {
     
             }
           }
-        }
+        }*/
         /*stage("Quality Gate"){
           steps {
             timeout(time: 5, unit: 'MINUTES') { // Just in case something goes wrong, pipeline will be killed after a timeout
@@ -39,14 +39,14 @@ pipeline {
                 sh 'sudo docker images'
             }
         }
-        stage('STOPPING THE PREVIOUS VERSION OF Docker Container') {
+        /*stage('STOPPING THE PREVIOUS VERSION OF Docker Container') {
                 steps {
                     echo '+++++Stopping & removing the Application+++++'
                     //sh 'sudo docker stop $(sudo docker container ls | grep spring-petclinic-angular-app | awk '{print $1}') | xargs docker rm'
                     sh 'docker container ls -a -f name=spring-petclinic-angular-app -q | xargs -r docker container rm'
                     echo '+++++Application Stopped+++++'
                 }
-        }
+        }*/
         stage('Deploy Application') {
             steps {
                  echo '+++++Deploying the Application on slave1+++++'
