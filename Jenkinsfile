@@ -12,7 +12,7 @@ pipeline {
         stage ('sonarqube analysis') {        
           steps {	    
             sh 'echo "+++++Running code Coverage+++++"'
-	    sh 'npm run codeCoverage'
+	    sh 'ng test --no-watch --code-coverage'
             sh 'echo "+++++Scanning code coverage+++++"'
             withSonarQubeEnv("sonarqube") {
              sh "${tool("sonarqube")}/bin/sonar-scanner"   
